@@ -374,7 +374,7 @@
                 </div>
 
                 <!-- Key Metrics Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div id="keyMetricsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
                     <!-- Total Activities -->
                     <div class="modern-card text-center">
                         <div class="metric-icon gradient-blue mx-auto">
@@ -483,6 +483,34 @@
                         <div id="insightsPanel" class="space-y-4">
                             <!-- AI-like insights will be inserted here -->
                         </div>
+                    </div>
+                </div>
+
+                <!-- Mood Tracker Section -->
+                <div class="modern-card mt-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">Mood Tracker</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <canvas id="moodPieChart" height="250"></canvas>
+                        </div>
+                        <div id="moodNotesPlaceholder" class="text-sm text-gray-600">
+                            <p>Mood tracking and note-linking functionality will be added in a future update.</p>
+                            <p>Sample Moods:</p>
+                            <ul class="list-disc list-inside ml-4">
+                                <li>😊 Happy: 60%</li>
+                                <li>😴 Sleepy: 25%</li>
+                                <li>😟 Anxious: 15%</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Milestones & Alerts Section -->
+                <div class="modern-card mt-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">Milestones & Alerts</h3>
+                    <div id="milestonesListContainer" class="space-y-4">
+                        <!-- Milestone items will be injected here by JavaScript -->
+                        <p class="text-sm text-gray-500">Loading milestones...</p>
                     </div>
                 </div>
             </div>
@@ -827,10 +855,144 @@
         }
 
         // Modern Statistics Functions
+        // Moved updateDailyOverviewMetrics and updateWalksTrend here
+
+        function updateDailyOverviewMetrics(data) {
+            const container = document.getElementById('keyMetricsContainer');
+            if (!container) {
+                return;
+            }
+            container.innerHTML = `
+                <div class="modern-card text-center">
+                    <div class="metric-icon gradient-blue mx-auto"><i class="fas fa-utensils"></i></div>
+                    <div id="mealsGivenValue" class="animated-counter text-2xl" style="font-size: 1.5rem; min-height: 36px;">0/0 (0%)</div>
+                    <p class="text-gray-600 font-medium mt-1">Meals Given</p>
+                    <div class="text-xs text-gray-500 mt-1">Actual vs Target</div>
+                </div>
+                <div class="modern-card text-center">
+                    <div class="metric-icon gradient-green mx-auto"><i class="fas fa-walking"></i></div>
+                    <div id="walksTakenValue" class="animated-counter text-2xl" style="font-size: 1.5rem; min-height: 36px;">0/0 (0%)</div>
+                    <p class="text-gray-600 font-medium mt-1">Walks Taken</p>
+                    <div class="trend-indicator mt-1 mx-auto" id="walksTrend" style="font-size: 0.75rem; padding: 2px 6px;"><i class="fas fa-minus mr-1"></i>Trend N/A</div>
+                </div>
+                <div class="modern-card text-center">
+                    <div class="metric-icon gradient-purple mx-auto"><i class="fas fa-tint"></i></div>
+                    <div id="waterDrankValue" class="animated-counter text-2xl" style="font-size: 1.5rem; min-height: 36px;">Avg. 900ml</div>
+                    <p class="text-gray-600 font-medium mt-1">Water Drank</p>
+                    <div class="text-xs text-gray-500 mt-1">(tracking not yet implemented)</div>
+                </div>
+                <div class="modern-card text-center">
+                    <div class="metric-icon gradient-orange mx-auto"><i class="fas fa-pills"></i></div>
+                    <div id="medsGivenValue" class="animated-counter text-2xl" style="font-size: 1.5rem; min-height: 36px;">0/0 (0%)</div>
+                    <p class="text-gray-600 font-medium mt-1">Meds Given</p>
+                    <div class="text-xs text-gray-500 mt-1">Actual vs Target (from routines)</div>
+                </div>
+                <div class="modern-card text-center">
+                    <div class="metric-icon gradient-blue mx-auto" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);"><i class="fas fa-cut"></i></div>
+                    <div id="groomingValue" class="text-xl font-semibold pt-1" style="font-size: 1.25rem; min-height: 36px; display: flex; align-items: center; justify-content: center;">No recent grooming</div>
+                    <p class="text-gray-600 font-medium mt-1">Grooming</p>
+                    <div class="text-xs text-gray-500 mt-1">Last session</div>
+                </div>
+            `;
+
+            const { activities: filteredActivities, timeFilter, petFilter } = data;
+            const daysInFilter = timeFilter;
+            let numberOfPetsInFilter = (petFilter === "") ? (pets.length > 0 ? pets.length : 1) : 1;
+            if (pets.length === 0 && petFilter === "") numberOfPetsInFilter = 1;
+
+            const mealsEl = document.getElementById('mealsGivenValue');
+            const actualMeals = filteredActivities.filter(a => a.type === 'feeding').length;
+            const targetMeals = numberOfPetsInFilter * daysInFilter * 2;
+            const mealsPerc = targetMeals > 0 ? Math.round((actualMeals / targetMeals) * 100) : 0;
+            if(mealsEl) mealsEl.textContent = `${actualMeals}/${targetMeals} (${mealsPerc}%)`;
+
+            const walksEl = document.getElementById('walksTakenValue');
+            const actualWalks = filteredActivities.filter(a => a.type === 'walk').length;
+            const targetWalks = numberOfPetsInFilter * daysInFilter * 2;
+            const walksPerc = targetWalks > 0 ? Math.round((actualWalks / targetWalks) * 100) : 0;
+            if(walksEl) walksEl.textContent = `${actualWalks}/${targetWalks} (${walksPerc}%)`;
+            updateWalksTrend(actualWalks, targetWalks, walksPerc);
+
+            const medsEl = document.getElementById('medsGivenValue');
+            let medRoutines = routines.filter(r => r.activity === 'medication' && r.active && (petFilter === "" || r.petId === petFilter));
+            const targetMeds = medRoutines.length * daysInFilter;
+            const actualMeds = filteredActivities.filter(a => a.type === 'medication').length;
+            const medsPerc = targetMeds > 0 ? Math.round((actualMeds / targetMeds) * 100) : 0;
+            if(medsEl) {
+                if (targetMeds > 0) medsEl.textContent = `${actualMeds}/${targetMeds} (${medsPerc}%)`;
+                else if (actualMeds > 0) medsEl.textContent = `${actualMeds} (No target)`;
+                else medsEl.textContent = "N/A";
+            }
+
+            const groomingEl = document.getElementById('groomingValue');
+            let groomActivities = (petFilter === "") ? activities : activities.filter(a => a.petId === petFilter);
+            const lastGroom = groomActivities.filter(a => a.type === 'grooming').sort((a,b) => new Date(b.dateTime) - new Date(a.dateTime))[0];
+            if(groomingEl) {
+                if (lastGroom) {
+                    const daysAgo = Math.floor((new Date() - new Date(lastGroom.dateTime)) / (1000*60*60*24));
+                    groomingEl.textContent = daysAgo === 0 ? "Today" : (daysAgo === 1 ? "Yesterday" : `${daysAgo} days ago`);
+                } else {
+                    groomingEl.textContent = "No recent grooming";
+                }
+            }
+        }
+
+        function updateWalksTrend(actualWalks, targetWalks, percentage) {
+            const trendElement = document.getElementById('walksTrend');
+            if (!trendElement) return;
+            let icon = 'fa-minus', text = 'On Par', color = 'text-gray-500';
+            if (targetWalks > 0) {
+                if (percentage >= 90) { icon = 'fa-arrow-up'; text = 'Excellent'; color = 'trend-up'; }
+                else if (percentage >= 60) { icon = 'fa-arrow-right'; text = 'Good Effort'; color = 'text-yellow-500'; }
+                else { icon = 'fa-arrow-down'; text = 'Needs More'; color = 'trend-down'; }
+            } else if (actualWalks > 0) { icon = 'fa-check'; text = 'Walks Logged'; color = 'trend-up'; }
+            else { text = 'No Walks/Target'; }
+            trendElement.className = `trend-indicator mt-1 mx-auto ${color}`;
+            trendElement.innerHTML = `<i class="fas ${icon} mr-1"></i>${text}`;
+        }
+
         function setupModernStatistics() {
             populatePetFilter();
             generateActivityHeatmap();
-            updateModernStatistics();
+            updateModernStatistics(); // This call remains, and will execute original updateKeyMetrics
+
+            // --- BEGINNING OF ADDED CALL TO DAILY OVERVIEW ---
+            console.log("Attempting to call updateDailyOverviewMetrics from setupModernStatistics");
+            const initialPetFilter = document.getElementById('petFilter') ? document.getElementById('petFilter').value : "";
+            const initialTimeFilter = document.getElementById('timeFilter') ? parseInt(document.getElementById('timeFilter').value) : 7;
+            const initialFilteredData = getFilteredData(initialPetFilter, initialTimeFilter);
+            if (initialFilteredData && typeof updateDailyOverviewMetrics === "function") {
+               updateDailyOverviewMetrics(initialFilteredData);
+               console.log("Call to updateDailyOverviewMetrics from setupModernStatistics completed.");
+            } else {
+               if (!initialFilteredData) console.error("Failed to get initialFilteredData in setupModernStatistics");
+               if (typeof updateDailyOverviewMetrics !== "function") console.error("updateDailyOverviewMetrics is not defined");
+            }
+            // --- END OF ADDED CALL TO DAILY OVERVIEW ---
+
+            // --- BEGINNING OF MOOD TRACKER CALL ---
+            if (typeof renderMoodTrackerChart === 'function') {
+                renderMoodTrackerChart();
+            } else {
+                console.error("renderMoodTrackerChart function not found.");
+            }
+            // --- END OF MOOD TRACKER CALL ---
+
+            // --- BEGINNING OF MILESTONES CALL ---
+            if (typeof renderMilestonesAndAlerts === 'function') {
+                renderMilestonesAndAlerts();
+            } else {
+                console.error("renderMilestonesAndAlerts function not found.");
+            }
+            // --- END OF MILESTONES CALL ---
+
+            // --- BEGINNING OF ROUTINE ADHERENCE CALL ---
+            if (typeof renderRoutineAdherence === 'function') {
+                renderRoutineAdherence();
+            } else {
+                console.error("renderRoutineAdherence function not found.");
+            }
+            // --- END OF ROUTINE ADHERENCE CALL ---
         }
 
         function populatePetFilter() {
@@ -2125,6 +2287,21 @@
                             <div>
                                 <div class="font-medium">${task.petName} - ${task.activity}</div>
                                 <div class="text-sm text-gray-600">${dayString} at ${timeString}</div>
+                    </div>
+                </div>
+
+                <!-- Daily Routine Adherence Ring Section -->
+                <div class="modern-card mt-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">Daily Routine Adherence</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                        <div>
+                            <canvas id="routineAdherenceChart" height="250"></canvas>
+                        </div>
+                        <div id="routineAdherenceText" class="text-center md:text-left">
+                            <p class="text-4xl font-bold text-blue-600" id="routineScoreDisplay">0%</p>
+                            <p class="text-sm text-gray-600">Routine Score</p>
+                            <p class="text-xs text-gray-500 mt-2">Based on scheduled meals, meds, and walks completed today.</p>
+                        </div>
                             </div>
                         </div>
                     </div>
@@ -2213,6 +2390,209 @@
                     }
                 }
             });
+        }
+
+        function renderMoodTrackerChart() {
+            const moodCtx = document.getElementById('moodPieChart');
+            if (!moodCtx) {
+                // console.log("Mood pie chart canvas not found, possibly due to tab not being active or HTML not yet rendered.");
+                return;
+            }
+
+            // Destroy existing chart instance if it exists
+            if (chartInstances.moodPieChart) {
+                chartInstances.moodPieChart.destroy();
+            }
+
+            chartInstances.moodPieChart = new Chart(moodCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Happy', 'Sleepy', 'Anxious'],
+                    datasets: [{
+                        label: 'Mood Distribution',
+                        data: [60, 25, 15], // Sample data
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.8)', // Blue for Happy
+                            'rgba(255, 205, 86, 0.8)', // Yellow for Sleepy
+                            'rgba(255, 99, 132, 0.8)'  // Red for Anxious
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 205, 86, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            });
+            // console.log("Mood tracker chart rendered with sample data.");
+        }
+
+        function renderMilestonesAndAlerts() {
+            const container = document.getElementById('milestonesListContainer');
+            if (!container) {
+                // console.log("Milestones container not found.");
+                return;
+            }
+            container.innerHTML = ''; // Clear previous content
+
+            let milestonesHTML = '';
+
+            // 1. Vaccination Completed (from health records)
+            const vaccinations = healthRecords.filter(r => r.type === 'vaccination');
+            vaccinations.forEach(vacc => {
+                const pet = pets.find(p => p.id === vacc.petId);
+                const petName = pet ? pet.name : 'A pet';
+                milestonesHTML += `
+                    <div class="p-3 bg-green-50 rounded-lg flex items-center space-x-3">
+                        <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                        <div>
+                            <p class="font-medium">${petName}: Vaccination - ${vacc.description}</p>
+                            <p class="text-sm text-gray-600">Completed: ${new Date(vacc.date).toLocaleDateString()}</p>
+                        </div>
+                    </div>`;
+            });
+            if (vaccinations.length === 0) {
+                 milestonesHTML += `<div class="p-3 bg-gray-50 rounded-lg text-sm text-gray-500">No vaccination records found.</div>`;
+            }
+
+            // 2. Grooming Due (placeholder logic)
+            const lastGrooming = activities.filter(a => a.type === 'grooming').sort((a,b) => new Date(b.dateTime) - new Date(a.dateTime))[0];
+            if (lastGrooming) {
+                const daysAgo = Math.floor((new Date() - new Date(lastGrooming.dateTime)) / (1000 * 60 * 60 * 24));
+                const groomingPet = pets.find(p => p.id === lastGrooming.petId);
+                const groomingPetName = groomingPet ? groomingPet.name : 'A pet';
+                milestonesHTML += `
+                    <div class="p-3 bg-yellow-50 rounded-lg flex items-center space-x-3">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
+                        <div>
+                            <p class="font-medium">${groomingPetName}: Grooming</p>
+                            <p class="text-sm text-gray-600">Last grooming: ${daysAgo} days ago. (Due date tracking not yet implemented)</p>
+                        </div>
+                    </div>`;
+            } else {
+                 milestonesHTML += `<div class="p-3 bg-gray-50 rounded-lg text-sm text-gray-500">No grooming records. Consider setting a reminder.</div>`;
+            }
+
+
+            // 3. Next Deworming (placeholder)
+            milestonesHTML += `
+                <div class="p-3 bg-yellow-50 rounded-lg flex items-center space-x-3">
+                    <i class="fas fa-pills text-orange-500 text-xl"></i>
+                    <div>
+                        <p class="font-medium">Next Deworming</p>
+                        <p class="text-sm text-gray-600">Deworming schedule not yet implemented. Please consult your vet.</p>
+                    </div>
+                </div>`;
+
+            // 4. Walks Completed (total count from all activities, not just filtered)
+            const totalWalks = activities.filter(a => a.type === 'walk').length;
+            milestonesHTML += `
+                <div class="p-3 bg-blue-50 rounded-lg flex items-center space-x-3">
+                    <i class="fas fa-award text-blue-500 text-xl"></i>
+                    <div>
+                        <p class="font-medium">${totalWalks} Walks Logged!</p>
+                        <p class="text-sm text-gray-600">Keep up the great work!</p>
+                    </div>
+                </div>`;
+            
+            container.innerHTML = milestonesHTML;
+            // console.log("Milestones and alerts rendered.");
+        }
+
+        function renderRoutineAdherence() {
+            const canvasElement = document.getElementById('routineAdherenceChart');
+            if (!canvasElement) {
+                // console.log("Routine adherence chart canvas not found.");
+                return;
+            }
+            const scoreDisplay = document.getElementById('routineScoreDisplay');
+            if (!scoreDisplay) {
+                // console.log("Routine score display element not found.");
+                return;
+            }
+
+            // Calculate Adherence (Simplified for 'today')
+            let completedTasks = 0;
+            let totalTasks = 0;
+            const todayString = new Date().toDateString();
+            
+            // Determine which pets to consider based on the current pet filter
+            const currentPetFilter = document.getElementById('petFilter').value;
+            const petsToConsider = currentPetFilter === "" ? pets.map(p => p.id) : [currentPetFilter];
+
+            routines.forEach(routine => {
+                if (!routine.active) return;
+                // Only consider routines for pets that are part of the current filter
+                if (!petsToConsider.includes(routine.petId)) return;
+
+                // For this simplified score, only consider daily routines of specific types
+                if (routine.frequency === 'daily' && (routine.activity === 'feeding' || routine.activity === 'medication' || routine.activity === 'walk')) {
+                    totalTasks++;
+                    const taskLoggedToday = activities.some(activity =>
+                        activity.petId === routine.petId &&
+                        activity.type.toLowerCase() === routine.activity.toLowerCase() && 
+                        new Date(activity.dateTime).toDateString() === todayString
+                    );
+                    if (taskLoggedToday) {
+                        completedTasks++;
+                    }
+                }
+            });
+
+            const adherencePercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            scoreDisplay.textContent = `${adherencePercentage}%`;
+
+            // Render Donut Chart
+            if (chartInstances.routineAdherenceChart) {
+                chartInstances.routineAdherenceChart.destroy();
+            }
+            chartInstances.routineAdherenceChart = new Chart(canvasElement, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Pending'],
+                    datasets: [{
+                        data: [adherencePercentage, 100 - adherencePercentage],
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.8)', // Blue for Completed
+                            'rgba(229, 231, 235, 0.8)'  // Gray for Pending
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(209, 213, 219, 1)'
+                        ],
+                        borderWidth: 1,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%', 
+                    plugins: {
+                        legend: {
+                            display: false 
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    },
+                    animation: {
+                        animateRotate: true,
+                        duration: 1000
+                    }
+                }
+            });
+            // console.log("Routine adherence chart rendered. Score: " + adherencePercentage + "%");
         }
     </script>
 </body>
