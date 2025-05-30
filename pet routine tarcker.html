@@ -1,0 +1,2219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Routine Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-item.active { background-color: #3b82f6; color: white; }
+        .pet-card { transition: all 0.3s ease; }
+        .pet-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .activity-badge { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px; border: none; border-radius: 10px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: black; }
+        .photo-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb; }
+        .camera-preview { width: 100%; max-width: 300px; height: 200px; background: #000; border-radius: 8px; }
+        .photo-option-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 16px; border: 2px dashed #d1d5db; border-radius: 8px; background: #f9fafb; cursor: pointer; transition: all 0.3s; }
+        .photo-option-btn:hover { border-color: #3b82f6; background: #eff6ff; }
+        .photo-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+        .photo-item { position: relative; }
+        .photo-delete { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
+
+        /* Modern Statistics Styles */
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .gradient-blue {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .gradient-green {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .gradient-purple {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .gradient-orange {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+        }
+
+        .modern-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px -6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modern-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 32px 64px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .stat-card {
+            background: linear-gradient(145deg, #ffffff, #f0f0f0);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 20px 20px 60px #d1d1d1, -20px -20px 60px #ffffff;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 25px 25px 75px #d1d1d1, -25px -25px 75px #ffffff;
+            transform: translateY(-5px);
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+
+        .animated-counter {
+            font-weight: 700;
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .filter-button {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 8px 16px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .filter-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .filter-button.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .heatmap-cell {
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .trend-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 16px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .trend-up {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+
+        .trend-down {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .floating-stats {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 1rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .streak-flame {
+            animation: flicker 2s infinite alternate;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .metric-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin: 0 auto 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .floating-stats {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-paw text-3xl text-blue-600"></i>
+                    <h1 class="text-2xl font-bold text-gray-800">Pet Routine Tracker</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="currentDate" class="text-gray-600"></span>
+                    <button onclick="exportData()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
+                        <i class="fas fa-download mr-2"></i>Export
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-0 overflow-x-auto">
+                <button onclick="showTab('pets')" class="nav-item px-6 py-3 whitespace-nowrap border-b-2 border-transparent hover:border-blue-300 active">
+                    <i class="fas fa-heart mr-2"></i>My Pets
+                </button>
+                <button onclick="showTab('activities')" class="nav-item px-6 py-3 whitespace-nowrap border-b-2 border-transparent hover:border-blue-300">
+                    <i class="fas fa-calendar-check mr-2"></i>Activities
+                </button>
+                <button onclick="showTab('health')" class="nav-item px-6 py-3 whitespace-nowrap border-b-2 border-transparent hover:border-blue-300">
+                    <i class="fas fa-stethoscope mr-2"></i>Health
+                </button>
+                <button onclick="showTab('routines')" class="nav-item px-6 py-3 whitespace-nowrap border-b-2 border-transparent hover:border-blue-300">
+                    <i class="fas fa-clock mr-2"></i>Routines
+                </button>
+                <button onclick="showTab('statistics')" class="nav-item px-6 py-3 whitespace-nowrap border-b-2 border-transparent hover:border-blue-300">
+                    <i class="fas fa-chart-line mr-2"></i>Statistics
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Pets Tab -->
+        <div id="pets" class="tab-content active">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">My Pets</h2>
+                <button onclick="openAddPetModal()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-plus mr-2"></i>Add Pet
+                </button>
+            </div>
+            <div id="petsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Pet cards will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Activities Tab -->
+        <div id="activities" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Today's Activities</h2>
+                <button onclick="openAddActivityModal()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-plus mr-2"></i>Log Activity
+                </button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="quickActivity('feeding')" class="bg-orange-100 hover:bg-orange-200 text-orange-800 px-4 py-3 rounded-lg text-center">
+                            <i class="fas fa-utensils text-xl mb-2 block"></i>Feed
+                        </button>
+                        <button onclick="quickActivity('walk')" class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-4 py-3 rounded-lg text-center">
+                            <i class="fas fa-walking text-xl mb-2 block"></i>Walk
+                        </button>
+                        <button onclick="quickActivity('medication')" class="bg-red-100 hover:bg-red-200 text-red-800 px-4 py-3 rounded-lg text-center">
+                            <i class="fas fa-pills text-xl mb-2 block"></i>Medicine
+                        </button>
+                        <button onclick="quickActivity('grooming')" class="bg-purple-100 hover:bg-purple-200 text-purple-800 px-4 py-3 rounded-lg text-center">
+                            <i class="fas fa-cut text-xl mb-2 block"></i>Groom
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Today's Summary</h3>
+                    <div id="todaySummary" class="space-y-2">
+                        <!-- Summary will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold mb-4">Recent Activities</h3>
+                <div id="activitiesList" class="space-y-3">
+                    <!-- Activities will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Tab -->
+        <div id="health" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Health Records</h2>
+                <button onclick="openAddHealthModal()" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-plus mr-2"></i>Add Record
+                </button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Vaccination Schedule</h3>
+                    <div id="vaccinationList" class="space-y-3">
+                        <!-- Vaccinations will be inserted here -->
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Weight Tracking</h3>
+                    <canvas id="weightChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                <h3 class="text-lg font-semibold mb-4">Health Records</h3>
+                <div id="healthRecordsList" class="space-y-3">
+                    <!-- Health records will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Routines Tab -->
+        <div id="routines" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Routines & Schedules</h2>
+                <button onclick="openAddRoutineModal()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-plus mr-2"></i>Add Routine
+                </button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Active Routines</h3>
+                    <div id="routinesList" class="space-y-3">
+                        <!-- Routines will be inserted here -->
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">Upcoming Tasks</h3>
+                    <div id="upcomingTasks" class="space-y-3">
+                        <!-- Upcoming tasks will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modern Statistics Tab -->
+        <div id="statistics" class="tab-content">
+            <div class="gradient-bg min-h-screen -mx-4 -mt-6 px-4 pt-6">
+                <!-- Statistics Header -->
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+                    <h2 class="text-3xl font-bold text-white mb-4 md:mb-0">
+                        <i class="fas fa-chart-line mr-3"></i>Pet Analytics Dashboard
+                    </h2>
+                    
+                    <!-- Filter Controls -->
+                    <div class="flex flex-wrap gap-3">
+                        <select id="petFilter" class="filter-button">
+                            <option value="">All Pets</option>
+                        </select>
+                        <select id="timeFilter" class="filter-button">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                            <option value="365">Last Year</option>
+                        </select>
+                        <button onclick="resetFilters()" class="filter-button">
+                            <i class="fas fa-refresh mr-2"></i>Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Key Metrics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Activities -->
+                    <div class="modern-card text-center">
+                        <div class="metric-icon gradient-blue mx-auto">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="animated-counter" id="totalActivitiesCount">0</div>
+                        <p class="text-gray-600 font-medium">Total Activities</p>
+                        <div class="trend-indicator trend-up mt-2" id="activitiesTrend">
+                            <i class="fas fa-arrow-up mr-1"></i>+15%
+                        </div>
+                    </div>
+
+                    <!-- Current Streak -->
+                    <div class="modern-card text-center">
+                        <div class="metric-icon gradient-orange mx-auto">
+                            <i class="fas fa-fire streak-flame"></i>
+                        </div>
+                        <div class="animated-counter" id="currentStreak">0</div>
+                        <p class="text-gray-600 font-medium">Current Streak</p>
+                        <div class="text-sm text-gray-500 mt-2">Days Consistent</div>
+                    </div>
+
+                    <!-- Health Score -->
+                    <div class="modern-card text-center">
+                        <div class="metric-icon gradient-green mx-auto">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="animated-counter" id="healthScore">0</div>
+                        <p class="text-gray-600 font-medium">Health Score</p>
+                        <div class="text-sm text-gray-500 mt-2">Out of 100</div>
+                    </div>
+
+                    <!-- Completion Rate -->
+                    <div class="modern-card text-center">
+                        <div class="metric-icon gradient-purple mx-auto">
+                            <i class="fas fa-target"></i>
+                        </div>
+                        <div class="animated-counter" id="completionRate">0</div>
+                        <p class="text-gray-600 font-medium">Completion Rate</p>
+                        <div class="text-sm text-gray-500 mt-2">This Week</div>
+                    </div>
+                </div>
+
+                <!-- Charts Row 1 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Activity Distribution -->
+                    <div class="modern-card">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-bold text-gray-800">Activity Distribution</h3>
+                            <div class="flex space-x-2">
+                                <button onclick="changeChartType('activityChart', 'doughnut')" class="text-sm px-3 py-1 bg-blue-100 text-blue-600 rounded-full">Donut</button>
+                                <button onclick="changeChartType('activityChart', 'bar')" class="text-sm px-3 py-1 bg-gray-100 text-gray-600 rounded-full">Bar</button>
+                            </div>
+                        </div>
+                        <canvas id="activityChart" height="300"></canvas>
+                    </div>
+
+                    <!-- Progress Trends -->
+                    <div class="modern-card">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Activity Trends</h3>
+                        <canvas id="progressChart" height="300"></canvas>
+                    </div>
+                </div>
+
+                <!-- Charts Row 2 -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                    <!-- Pet Comparison -->
+                    <div class="modern-card lg:col-span-2">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Pet Comparison</h3>
+                        <canvas id="petComparisonChart" height="200"></canvas>
+                    </div>
+
+                    <!-- Goal Progress -->
+                    <div class="modern-card">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Goal Progress</h3>
+                        <div id="goalProgress" class="space-y-4">
+                            <!-- Goal progress bars will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Heatmap -->
+                <div class="modern-card mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">Activity Heatmap</h3>
+                        <div class="text-sm text-gray-600">Last 12 weeks</div>
+                    </div>
+                    <div id="activityHeatmap" class="overflow-x-auto">
+                        <!-- Heatmap will be generated here -->
+                    </div>
+                </div>
+
+                <!-- Detailed Analytics -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Weekly Breakdown -->
+                    <div class="modern-card">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Weekly Breakdown</h3>
+                        <div id="weeklyBreakdown" class="space-y-4">
+                            <!-- Weekly stats will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Insights & Recommendations -->
+                    <div class="modern-card">
+                        <h3 class="text-xl font-bold text-gray-800 mb-6">Insights & Tips</h3>
+                        <div id="insightsPanel" class="space-y-4">
+                            <!-- AI-like insights will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Quick Stats (Desktop Only) -->
+    <div id="floatingStats" class="floating-stats hidden lg:block">
+        <div class="text-center">
+            <div class="text-2xl font-bold text-blue-600" id="floatingActivitiesToday">0</div>
+            <div class="text-xs text-gray-600">Today</div>
+        </div>
+        <div class="text-center mt-3">
+            <div class="text-lg font-bold text-green-600" id="floatingStreak">0</div>
+            <div class="text-xs text-gray-600">Streak</div>
+        </div>
+    </div>
+
+    <!-- All the existing modals remain the same -->
+    <!-- Add Pet Modal -->
+    <div id="addPetModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addPetModal')">&times;</span>
+            <h3 class="text-xl font-bold mb-4">Add New Pet</h3>
+            <form id="addPetForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pet Name</label>
+                    <input type="text" id="petName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select id="petType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="">Select type</option>
+                        <option value="dog">Dog</option>
+                        <option value="cat">Cat</option>
+                        <option value="bird">Bird</option>
+                        <option value="fish">Fish</option>
+                        <option value="rabbit">Rabbit</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Breed</label>
+                    <input type="text" id="petBreed" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                    <input type="number" id="petAge" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                    <input type="number" step="0.1" id="petWeight" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Pet Photo</label>
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap gap-3">
+                            <button type="button" onclick="triggerFileUpload('petPhoto')" class="photo-option-btn">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload Photo</span>
+                            </button>
+                            <button type="button" onclick="openCamera('petPhoto')" class="photo-option-btn">
+                                <i class="fas fa-camera"></i>
+                                <span>Take Photo</span>
+                            </button>
+                        </div>
+                        <input type="file" id="petPhoto" accept="image/*" style="display: none;" onchange="handleFileUpload(this, 'petPhotoPreview')">
+                        <div id="petPhotoPreview" class="photo-gallery"></div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('addPetModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">Add Pet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Activity Modal -->
+    <div id="addActivityModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addActivityModal')">&times;</span>
+            <h3 class="text-xl font-bold mb-4">Log Activity</h3>
+            <form id="addActivityForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pet</label>
+                    <select id="activityPet" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <!-- Pets will be populated here -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Activity Type</label>
+                    <select id="activityType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="feeding">Feeding</option>
+                        <option value="walk">Walk</option>
+                        <option value="medication">Medication</option>
+                        <option value="grooming">Grooming</option>
+                        <option value="play">Play Time</option>
+                        <option value="training">Training</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date & Time</label>
+                    <input type="datetime-local" id="activityDateTime" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                    <input type="number" id="activityDuration" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea id="activityNotes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Activity Photo</label>
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap gap-3">
+                            <button type="button" onclick="triggerFileUpload('activityPhoto')" class="photo-option-btn">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload Photo</span>
+                            </button>
+                            <button type="button" onclick="openCamera('activityPhoto')" class="photo-option-btn">
+                                <i class="fas fa-camera"></i>
+                                <span>Take Photo</span>
+                            </button>
+                        </div>
+                        <input type="file" id="activityPhoto" accept="image/*" style="display: none;" onchange="handleFileUpload(this, 'activityPhotoPreview')">
+                        <div id="activityPhotoPreview" class="photo-gallery"></div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('addActivityModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">Log Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Health Record Modal -->
+    <div id="addHealthModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addHealthModal')">&times;</span>
+            <h3 class="text-xl font-bold mb-4">Add Health Record</h3>
+            <form id="addHealthForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pet</label>
+                    <select id="healthPet" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <!-- Pets will be populated here -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Record Type</label>
+                    <select id="healthType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="vaccination">Vaccination</option>
+                        <option value="checkup">Regular Checkup</option>
+                        <option value="illness">Illness/Treatment</option>
+                        <option value="weight">Weight Record</option>
+                        <option value="medication">Medication</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input type="date" id="healthDate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <input type="text" id="healthDescription" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg) - if applicable</label>
+                    <input type="number" step="0.1" id="healthWeight" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Veterinarian</label>
+                    <input type="text" id="healthVet" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea id="healthNotes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Health Record Photo</label>
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap gap-3">
+                            <button type="button" onclick="triggerFileUpload('healthPhoto')" class="photo-option-btn">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload Photo</span>
+                            </button>
+                            <button type="button" onclick="openCamera('healthPhoto')" class="photo-option-btn">
+                                <i class="fas fa-camera"></i>
+                                <span>Take Photo</span>
+                            </button>
+                        </div>
+                        <input type="file" id="healthPhoto" accept="image/*" style="display: none;" onchange="handleFileUpload(this, 'healthPhotoPreview')">
+                        <div id="healthPhotoPreview" class="photo-gallery"></div>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('addHealthModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">Add Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Routine Modal -->
+    <div id="addRoutineModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addRoutineModal')">&times;</span>
+            <h3 class="text-xl font-bold mb-4">Add Routine</h3>
+            <form id="addRoutineForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Pet</label>
+                    <select id="routinePet" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <!-- Pets will be populated here -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Activity</label>
+                    <select id="routineActivity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="feeding">Feeding</option>
+                        <option value="walk">Walk</option>
+                        <option value="medication">Medication</option>
+                        <option value="grooming">Grooming</option>
+                        <option value="play">Play Time</option>
+                        <option value="training">Training</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                    <select id="routineFrequency" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                    <input type="time" id="routineTime" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea id="routineNotes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal('addRoutineModal')" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600">Add Routine</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCameraModal()">&times;</span>
+            <h3 class="text-xl font-bold mb-4">Take Photo</h3>
+            <div class="text-center space-y-4">
+                <video id="cameraPreview" class="camera-preview mx-auto" autoplay playsinline></video>
+                <div class="flex justify-center space-x-3">
+                    <button onclick="capturePhoto()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+                        <i class="fas fa-camera mr-2"></i>Capture
+                    </button>
+                    <button onclick="closeCameraModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Storage
+        let pets = JSON.parse(localStorage.getItem('pets')) || [];
+        let activities = JSON.parse(localStorage.getItem('activities')) || [];
+        let healthRecords = JSON.parse(localStorage.getItem('healthRecords')) || [];
+        let routines = JSON.parse(localStorage.getItem('routines')) || [];
+
+        // Camera variables
+        let currentCameraTarget = null;
+        let cameraStream = null;
+
+        // Chart instances
+        let chartInstances = {};
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCurrentDate();
+            setInterval(updateCurrentDate, 60000); // Update every minute
+            
+            // Set default datetime for activity modal
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('activityDateTime').value = now.toISOString().slice(0,16);
+            
+            // Set default date for health modal
+            document.getElementById('healthDate').value = new Date().toISOString().split('T')[0];
+            
+            loadData();
+            renderAll();
+            setupModernStatistics();
+
+            // Add filter event listeners
+            document.getElementById('petFilter').addEventListener('change', updateModernStatistics);
+            document.getElementById('timeFilter').addEventListener('change', updateModernStatistics);
+        });
+
+        function updateCurrentDate() {
+            const now = new Date();
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Tab Navigation
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to selected nav item
+            event.target.classList.add('active');
+            
+            // Update content based on tab
+            if (tabName === 'statistics') {
+                updateModernStatistics();
+            }
+        }
+
+        // Modern Statistics Functions
+        function setupModernStatistics() {
+            populatePetFilter();
+            generateActivityHeatmap();
+            updateModernStatistics();
+        }
+
+        function populatePetFilter() {
+            const petFilter = document.getElementById('petFilter');
+            petFilter.innerHTML = '<option value="">All Pets</option>';
+            pets.forEach(pet => {
+                const option = document.createElement('option');
+                option.value = pet.id;
+                option.textContent = pet.name;
+                petFilter.appendChild(option);
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('petFilter').value = '';
+            document.getElementById('timeFilter').value = '7';
+            updateModernStatistics();
+        }
+
+        function updateModernStatistics() {
+            const petFilter = document.getElementById('petFilter').value;
+            const timeFilter = parseInt(document.getElementById('timeFilter').value);
+            
+            const filteredData = getFilteredData(petFilter, timeFilter);
+            
+            updateKeyMetrics(filteredData);
+            updateModernCharts(filteredData);
+            updateWeeklyBreakdown(filteredData);
+            updateInsights(filteredData);
+            updateGoalProgress(filteredData);
+            updateFloatingStats(filteredData);
+        }
+
+        function getFilteredData(petFilter, timeFilter) {
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - timeFilter);
+            
+            let filteredActivities = activities.filter(activity => {
+                const activityDate = new Date(activity.dateTime);
+                const matchesPet = !petFilter || activity.petId === petFilter;
+                const matchesTime = activityDate >= cutoffDate;
+                return matchesPet && matchesTime;
+            });
+            
+            let filteredHealthRecords = healthRecords.filter(record => {
+                const recordDate = new Date(record.date);
+                const matchesPet = !petFilter || record.petId === petFilter;
+                const matchesTime = recordDate >= cutoffDate;
+                return matchesPet && matchesTime;
+            });
+            
+            return {
+                activities: filteredActivities,
+                healthRecords: filteredHealthRecords,
+                timeFilter,
+                petFilter
+            };
+        }
+
+        function updateKeyMetrics(data) {
+            // Total Activities with animation
+            animateCounter('totalActivitiesCount', data.activities.length);
+            
+            // Current Streak
+            const streak = calculateCurrentStreak();
+            animateCounter('currentStreak', streak);
+            
+            // Health Score (based on recent activities and health records)
+            const healthScore = calculateHealthScore(data);
+            animateCounter('healthScore', healthScore);
+            
+            // Completion Rate
+            const completionRate = calculateCompletionRate(data);
+            animateCounter('completionRate', completionRate, '%');
+            
+            // Update trends
+            updateTrendIndicators(data);
+        }
+
+        function animateCounter(elementId, targetValue, suffix = '') {
+            const element = document.getElementById(elementId);
+            const startValue = parseInt(element.textContent) || 0;
+            const duration = 1000;
+            const startTime = performance.now();
+            
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                const currentValue = Math.floor(startValue + (targetValue - startValue) * progress);
+                element.textContent = currentValue + suffix;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        function calculateCurrentStreak() {
+            if (activities.length === 0) return 0;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let streak = 0;
+            let currentDate = new Date(today);
+            
+            while (true) {
+                const dayActivities = activities.filter(activity => {
+                    const activityDate = new Date(activity.dateTime);
+                    activityDate.setHours(0, 0, 0, 0);
+                    return activityDate.getTime() === currentDate.getTime();
+                });
+                
+                if (dayActivities.length > 0) {
+                    streak++;
+                    currentDate.setDate(currentDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+            
+            return streak;
+        }
+
+        function calculateHealthScore(data) {
+            let score = 50; // Base score
+            
+            // Add points for regular activities
+            const activityScore = Math.min(data.activities.length * 2, 30);
+            score += activityScore;
+            
+            // Add points for health records
+            const healthScore = Math.min(data.healthRecords.length * 5, 20);
+            score += healthScore;
+            
+            return Math.min(score, 100);
+        }
+
+        function calculateCompletionRate(data) {
+            const expectedActivities = routines.filter(r => r.active).length * 7; // Expected per week
+            if (expectedActivities === 0) return 0;
+            
+            const actualActivities = data.activities.length;
+            return Math.min(Math.round((actualActivities / expectedActivities) * 100), 100);
+        }
+
+        function updateTrendIndicators(data) {
+            // Calculate previous period for comparison
+            const previousData = getFilteredData(data.petFilter, data.timeFilter * 2);
+            const previousActivities = previousData.activities.slice(0, -data.activities.length);
+            
+            const trend = data.activities.length - previousActivities.length;
+            const trendElement = document.getElementById('activitiesTrend');
+            
+            if (trend > 0) {
+                trendElement.className = 'trend-indicator trend-up mt-2';
+                trendElement.innerHTML = `<i class="fas fa-arrow-up mr-1"></i>+${trend}`;
+            } else if (trend < 0) {
+                trendElement.className = 'trend-indicator trend-down mt-2';
+                trendElement.innerHTML = `<i class="fas fa-arrow-down mr-1"></i>${trend}`;
+            } else {
+                trendElement.className = 'trend-indicator mt-2';
+                trendElement.innerHTML = `<i class="fas fa-minus mr-1"></i>No change`;
+            }
+        }
+
+        function updateModernCharts(data) {
+            updateActivityDistributionChart(data);
+            updateProgressTrendChart(data);
+            updatePetComparisonChart(data);
+        }
+
+        function updateActivityDistributionChart(data) {
+            const ctx = document.getElementById('activityChart');
+            if (!ctx) return;
+            
+            // Destroy existing chart
+            if (chartInstances.activityChart) {
+                chartInstances.activityChart.destroy();
+            }
+            
+            const activityCounts = {};
+            data.activities.forEach(activity => {
+                activityCounts[activity.type] = (activityCounts[activity.type] || 0) + 1;
+            });
+            
+            const colors = [
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)',
+                'rgba(255, 159, 64, 0.8)'
+            ];
+            
+            chartInstances.activityChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(activityCounts),
+                    datasets: [{
+                        data: Object.values(activityCounts),
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    },
+                    cutout: '60%',
+                    animation: {
+                        animateRotate: true,
+                        duration: 1000
+                    }
+                }
+            });
+        }
+
+        function updateProgressTrendChart(data) {
+            const ctx = document.getElementById('progressChart');
+            if (!ctx) return;
+            
+            if (chartInstances.progressChart) {
+                chartInstances.progressChart.destroy();
+            }
+            
+            const days = Array.from({length: data.timeFilter}, (_, i) => {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                return date;
+            }).reverse();
+            
+            const dailyCounts = days.map(date => {
+                return data.activities.filter(activity => {
+                    const activityDate = new Date(activity.dateTime);
+                    return activityDate.toDateString() === date.toDateString();
+                }).length;
+            });
+            
+            chartInstances.progressChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: days.map(date => date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})),
+                    datasets: [{
+                        label: 'Daily Activities',
+                        data: dailyCounts,
+                        borderColor: 'rgb(99, 102, 241)',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: 'rgb(99, 102, 241)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+
+        function updatePetComparisonChart(data) {
+            const ctx = document.getElementById('petComparisonChart');
+            if (!ctx) return;
+            
+            if (chartInstances.petComparisonChart) {
+                chartInstances.petComparisonChart.destroy();
+            }
+            
+            const petActivityCounts = {};
+            data.activities.forEach(activity => {
+                const pet = pets.find(p => p.id === activity.petId);
+                if (pet) {
+                    petActivityCounts[pet.name] = (petActivityCounts[pet.name] || 0) + 1;
+                }
+            });
+            
+            chartInstances.petComparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(petActivityCounts),
+                    datasets: [{
+                        label: 'Activities',
+                        data: Object.values(petActivityCounts),
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateActivityHeatmap() {
+            const heatmapContainer = document.getElementById('activityHeatmap');
+            if (!heatmapContainer) return;
+            
+            const weeks = 12;
+            const today = new Date();
+            const startDate = new Date(today);
+            startDate.setDate(today.getDate() - (weeks * 7));
+            
+            let heatmapHTML = '<div class="grid grid-cols-7 gap-1">';
+            
+            // Add day labels
+            const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayLabels.forEach(day => {
+                heatmapHTML += `<div class="text-xs text-gray-500 text-center p-1">${day}</div>`;
+            });
+            
+            // Generate heatmap cells
+            for (let i = 0; i < weeks * 7; i++) {
+                const currentDate = new Date(startDate);
+                currentDate.setDate(startDate.getDate() + i);
+                
+                const dayActivities = activities.filter(activity => {
+                    const activityDate = new Date(activity.dateTime);
+                    return activityDate.toDateString() === currentDate.toDateString();
+                }).length;
+                
+                const intensity = Math.min(dayActivities, 4);
+                const color = intensity === 0 ? 'bg-gray-100' : 
+                             intensity === 1 ? 'bg-green-200' :
+                             intensity === 2 ? 'bg-green-300' :
+                             intensity === 3 ? 'bg-green-400' : 'bg-green-500';
+                
+                heatmapHTML += `
+                    <div class="heatmap-cell ${color} w-6 h-6 ${intensity > 0 ? 'cursor-pointer' : ''}" 
+                         title="${currentDate.toDateString()}: ${dayActivities} activities"
+                         onclick="showDayDetails('${currentDate.toISOString()}')">
+                    </div>
+                `;
+            }
+            
+            heatmapHTML += '</div>';
+            heatmapHTML += '<div class="flex items-center justify-between mt-4 text-xs text-gray-500">';
+            heatmapHTML += '<span>Less</span>';
+            heatmapHTML += '<div class="flex space-x-1">';
+            heatmapHTML += '<div class="w-3 h-3 bg-gray-100 rounded"></div>';
+            heatmapHTML += '<div class="w-3 h-3 bg-green-200 rounded"></div>';
+            heatmapHTML += '<div class="w-3 h-3 bg-green-300 rounded"></div>';
+            heatmapHTML += '<div class="w-3 h-3 bg-green-400 rounded"></div>';
+            heatmapHTML += '<div class="w-3 h-3 bg-green-500 rounded"></div>';
+            heatmapHTML += '</div>';
+            heatmapHTML += '<span>More</span>';
+            heatmapHTML += '</div>';
+            
+            heatmapContainer.innerHTML = heatmapHTML;
+        }
+
+        function showDayDetails(dateString) {
+            const date = new Date(dateString);
+            const dayActivities = activities.filter(activity => {
+                const activityDate = new Date(activity.dateTime);
+                return activityDate.toDateString() === date.toDateString();
+            });
+            
+            if (dayActivities.length === 0) return;
+            
+            alert(`${date.toDateString()}\n\n${dayActivities.map(a => {
+                const pet = pets.find(p => p.id === a.petId);
+                return `• ${pet ? pet.name : 'Unknown'}: ${a.type}`;
+            }).join('\n')}`);
+        }
+
+        function updateWeeklyBreakdown(data) {
+            const weeklyContainer = document.getElementById('weeklyBreakdown');
+            if (!weeklyContainer) return;
+            
+            const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const weeklyData = Array(7).fill(0);
+            
+            data.activities.forEach(activity => {
+                const day = new Date(activity.dateTime).getDay();
+                weeklyData[day]++;
+            });
+            
+            const maxActivities = Math.max(...weeklyData, 1);
+            
+            weeklyContainer.innerHTML = weekDays.map((day, index) => {
+                const count = weeklyData[index];
+                const percentage = (count / maxActivities) * 100;
+                
+                return `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">${day}</span>
+                        <div class="flex items-center space-x-3">
+                            <div class="w-24 bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-500" 
+                                     style="width: ${percentage}%"></div>
+                            </div>
+                            <span class="text-sm text-gray-600 w-6 text-right">${count}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateInsights(data) {
+            const insightsContainer = document.getElementById('insightsPanel');
+            if (!insightsContainer) return;
+            
+            const insights = generateInsights(data);
+            
+            insightsContainer.innerHTML = insights.map(insight => `
+                <div class="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-l-4 border-blue-400">
+                    <div class="flex items-start">
+                        <i class="fas ${insight.icon} text-blue-500 mr-3 mt-1"></i>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${insight.title}</h4>
+                            <p class="text-sm text-gray-600 mt-1">${insight.description}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function generateInsights(data) {
+            const insights = [];
+            
+            // Most active day
+            const dayActivities = Array(7).fill(0);
+            data.activities.forEach(activity => {
+                dayActivities[new Date(activity.dateTime).getDay()]++;
+            });
+            const mostActiveDay = dayActivities.indexOf(Math.max(...dayActivities));
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            insights.push({
+                icon: 'fa-calendar',
+                title: 'Most Active Day',
+                description: `${dayNames[mostActiveDay]} is your most active day with ${dayActivities[mostActiveDay]} activities.`
+            });
+            
+            // Activity pattern
+            const totalActivities = data.activities.length;
+            if (totalActivities > 0) {
+                const avgPerDay = (totalActivities / data.timeFilter).toFixed(1);
+                insights.push({
+                    icon: 'fa-chart-line',
+                    title: 'Activity Pattern',
+                    description: `You're averaging ${avgPerDay} activities per day. Keep up the great work!`
+                });
+            }
+            
+            // Health reminder
+            const recentHealthRecords = data.healthRecords.filter(record => {
+                const recordDate = new Date(record.date);
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                return recordDate >= thirtyDaysAgo;
+            });
+            
+            if (recentHealthRecords.length === 0) {
+                insights.push({
+                    icon: 'fa-heartbeat',
+                    title: 'Health Check Reminder',
+                    description: 'Consider scheduling a health check-up for your pets. Regular monitoring is important!'
+                });
+            }
+            
+            return insights;
+        }
+
+        function updateGoalProgress(data) {
+            const goalContainer = document.getElementById('goalProgress');
+            if (!goalContainer) return;
+            
+            const goals = [
+                { name: 'Daily Walks', target: 7, current: data.activities.filter(a => a.type === 'walk').length, icon: 'fa-walking' },
+                { name: 'Feeding', target: 14, current: data.activities.filter(a => a.type === 'feeding').length, icon: 'fa-utensils' },
+                { name: 'Health Records', target: 2, current: data.healthRecords.length, icon: 'fa-heartbeat' }
+            ];
+            
+            goalContainer.innerHTML = goals.map(goal => {
+                const percentage = Math.min((goal.current / goal.target) * 100, 100);
+                const color = percentage >= 100 ? 'green' : percentage >= 50 ? 'yellow' : 'red';
+                
+                return `
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas ${goal.icon} text-${color}-500"></i>
+                                <span class="text-sm font-medium">${goal.name}</span>
+                            </div>
+                            <span class="text-xs text-gray-500">${goal.current}/${goal.target}</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-${color}-500 h-2 rounded-full transition-all duration-500" 
+                                 style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateFloatingStats(data) {
+            const todayActivities = data.activities.filter(activity => {
+                const activityDate = new Date(activity.dateTime);
+                const today = new Date();
+                return activityDate.toDateString() === today.toDateString();
+            }).length;
+            
+            const streak = calculateCurrentStreak();
+            
+            document.getElementById('floatingActivitiesToday').textContent = todayActivities;
+            document.getElementById('floatingStreak').textContent = streak;
+        }
+
+        function changeChartType(chartId, newType) {
+            if (chartInstances[chartId]) {
+                chartInstances[chartId].config.type = newType;
+                chartInstances[chartId].update();
+            }
+        }
+
+        // Photo and Camera Functions
+        function triggerFileUpload(inputId) {
+            document.getElementById(inputId).click();
+        }
+
+        function handleFileUpload(input, previewId) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    addPhotoToPreview(e.target.result, previewId);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function openCamera(targetId) {
+            currentCameraTarget = targetId;
+            document.getElementById('cameraModal').style.display = 'block';
+            
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                })
+                .then(function(stream) {
+                    cameraStream = stream;
+                    const video = document.getElementById('cameraPreview');
+                    video.srcObject = stream;
+                })
+                .catch(function(error) {
+                    console.error('Camera access error:', error);
+                    alert('Unable to access camera. Please make sure you have granted camera permissions and try again.');
+                    closeCameraModal();
+                });
+            } else {
+                alert('Camera not supported in this browser');
+                closeCameraModal();
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('cameraPreview');
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            
+            const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+            const previewId = currentCameraTarget + 'Preview';
+            addPhotoToPreview(dataURL, previewId);
+            
+            closeCameraModal();
+        }
+
+        function closeCameraModal() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            document.getElementById('cameraModal').style.display = 'none';
+            currentCameraTarget = null;
+        }
+
+        function addPhotoToPreview(dataURL, previewId) {
+            const preview = document.getElementById(previewId);
+            const photoId = 'photo_' + Date.now();
+            
+            const photoDiv = document.createElement('div');
+            photoDiv.className = 'photo-item';
+            photoDiv.innerHTML = `
+                <img src="${dataURL}" class="photo-preview" alt="Photo">
+                <button onclick="removePhoto('${photoId}')" class="photo-delete">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            photoDiv.id = photoId;
+            
+            preview.appendChild(photoDiv);
+            
+            // Store photo data
+            if (!preview.photoData) preview.photoData = [];
+            preview.photoData.push(dataURL);
+        }
+
+        function removePhoto(photoId) {
+            const photoElement = document.getElementById(photoId);
+            if (photoElement) {
+                const preview = photoElement.parentElement;
+                const index = Array.from(preview.children).indexOf(photoElement);
+                if (preview.photoData && index >= 0) {
+                    preview.photoData.splice(index, 1);
+                }
+                photoElement.remove();
+            }
+        }
+
+        function getPhotosFromPreview(previewId) {
+            const preview = document.getElementById(previewId);
+            return preview.photoData || [];
+        }
+
+        function clearPhotoPreview(previewId) {
+            const preview = document.getElementById(previewId);
+            preview.innerHTML = '';
+            preview.photoData = [];
+        }
+
+        function displayPhotos(photos, containerId) {
+            if (!photos || photos.length === 0) return '';
+            
+            return `
+                <div class="photo-gallery mt-2">
+                    ${photos.map((photo, index) => `
+                        <img src="${photo}" class="photo-preview" alt="Photo ${index + 1}" onclick="viewPhoto('${photo}')">
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function viewPhoto(photoUrl) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            modal.innerHTML = `
+                <div class="modal-content text-center" style="max-width: 90%; max-height: 90%;">
+                    <span class="close" onclick="this.parentElement.parentElement.remove()">&times;</span>
+                    <img src="${photoUrl}" style="max-width: 100%; max-height: 80vh; object-fit: contain;">
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    modal.remove();
+                }
+            };
+        }
+
+        // Modal Functions
+        function openAddPetModal() {
+            clearPhotoPreview('petPhotoPreview');
+            document.getElementById('addPetModal').style.display = 'block';
+        }
+
+        function openAddActivityModal() {
+            populatePetSelects();
+            clearPhotoPreview('activityPhotoPreview');
+            document.getElementById('addActivityModal').style.display = 'block';
+        }
+
+        function openAddHealthModal() {
+            populatePetSelects();
+            clearPhotoPreview('healthPhotoPreview');
+            document.getElementById('addHealthModal').style.display = 'block';
+        }
+
+        function openAddRoutineModal() {
+            populatePetSelects();
+            document.getElementById('addRoutineModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function populatePetSelects() {
+            const selects = ['activityPet', 'healthPet', 'routinePet'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">Select a pet</option>';
+                pets.forEach(pet => {
+                    const option = document.createElement('option');
+                    option.value = pet.id;
+                    option.textContent = pet.name;
+                    select.appendChild(option);
+                });
+            });
+        }
+
+        // Pet Management
+        document.getElementById('addPetForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const pet = {
+                id: Date.now().toString(),
+                name: document.getElementById('petName').value,
+                type: document.getElementById('petType').value,
+                breed: document.getElementById('petBreed').value,
+                age: parseInt(document.getElementById('petAge').value) || 0,
+                weight: parseFloat(document.getElementById('petWeight').value) || 0,
+                photos: getPhotosFromPreview('petPhotoPreview'),
+                dateAdded: new Date().toISOString()
+            };
+            
+            pets.push(pet);
+            saveData();
+            renderPets();
+            populatePetFilter();
+            closeModal('addPetModal');
+            this.reset();
+        });
+
+        function renderPets() {
+            const grid = document.getElementById('petsGrid');
+            if (pets.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-paw text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 text-lg">No pets added yet</p>
+                        <p class="text-gray-400">Click "Add Pet" to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            grid.innerHTML = pets.map(pet => {
+                const petIcon = getPetIcon(pet.type);
+                const recentActivities = activities.filter(a => a.petId === pet.id && isToday(new Date(a.dateTime))).length;
+                const petPhoto = pet.photos && pet.photos.length > 0 ? pet.photos[0] : null;
+                
+                return `
+                    <div class="pet-card bg-white rounded-lg shadow-md p-6 relative">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-2xl">${petPhoto ? `<img src="${petPhoto}" class="w-12 h-12 rounded-full object-cover">` : petIcon}</div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-800">${pet.name}</h3>
+                                    <p class="text-sm text-gray-600">${pet.breed || pet.type}</p>
+                                </div>
+                            </div>
+                            <button onclick="deletePet('${pet.id}')" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <div><strong>Age:</strong> ${pet.age} years</div>
+                            <div><strong>Weight:</strong> ${pet.weight} kg</div>
+                            <div><strong>Activities Today:</strong> ${recentActivities}</div>
+                        </div>
+                        ${pet.photos && pet.photos.length > 1 ? `<div class="mt-3 text-xs text-gray-500">${pet.photos.length} photos</div>` : ''}
+                        ${recentActivities > 0 ? '<div class="activity-badge absolute top-2 right-2 w-3 h-3 bg-green-400 rounded-full"></div>' : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getPetIcon(type) {
+            const icons = {
+                dog: '🐕',
+                cat: '🐱',
+                bird: '🐦',
+                fish: '🐠',
+                rabbit: '🐰',
+                other: '🐾'
+            };
+            return icons[type] || icons.other;
+        }
+
+        function deletePet(petId) {
+            if (confirm('Are you sure you want to delete this pet? This will also delete all associated activities and health records.')) {
+                pets = pets.filter(p => p.id !== petId);
+                activities = activities.filter(a => a.petId !== petId);
+                healthRecords = healthRecords.filter(h => h.petId !== petId);
+                routines = routines.filter(r => r.petId !== petId);
+                saveData();
+                renderAll();
+                populatePetFilter();
+                updateModernStatistics();
+            }
+        }
+
+        // Activity Management
+        document.getElementById('addActivityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const activity = {
+                id: Date.now().toString(),
+                petId: document.getElementById('activityPet').value,
+                type: document.getElementById('activityType').value,
+                dateTime: document.getElementById('activityDateTime').value,
+                duration: parseInt(document.getElementById('activityDuration').value) || 0,
+                notes: document.getElementById('activityNotes').value,
+                photos: getPhotosFromPreview('activityPhotoPreview')
+            };
+            
+            activities.push(activity);
+            saveData();
+            renderActivities();
+            updateTodaySummary();
+            generateActivityHeatmap();
+            closeModal('addActivityModal');
+            this.reset();
+            
+            // Reset datetime to current time
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('activityDateTime').value = now.toISOString().slice(0,16);
+        });
+
+        function quickActivity(type) {
+            if (pets.length === 0) {
+                alert('Please add a pet first!');
+                return;
+            }
+            
+            // If only one pet, auto-select it
+            if (pets.length === 1) {
+                const activity = {
+                    id: Date.now().toString(),
+                    petId: pets[0].id,
+                    type: type,
+                    dateTime: new Date().toISOString(),
+                    duration: 0,
+                    notes: `Quick ${type} logged`,
+                    photos: []
+                };
+                
+                activities.push(activity);
+                saveData();
+                renderActivities();
+                updateTodaySummary();
+                renderPets(); // Update activity badges
+                generateActivityHeatmap();
+            } else {
+                // Open modal with type pre-selected
+                document.getElementById('activityType').value = type;
+                openAddActivityModal();
+            }
+        }
+
+        function renderActivities() {
+            const list = document.getElementById('activitiesList');
+            const recentActivities = activities
+                .sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime))
+                .slice(0, 10);
+            
+            if (recentActivities.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center py-4">No activities logged yet</p>';
+                return;
+            }
+            
+            list.innerHTML = recentActivities.map(activity => {
+                const pet = pets.find(p => p.id === activity.petId);
+                const date = new Date(activity.dateTime);
+                const isRecent = (Date.now() - date.getTime()) < 24 * 60 * 60 * 1000;
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg ${isRecent ? 'border-l-4 border-green-400' : ''}">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-lg">${getActivityIcon(activity.type)}</div>
+                                <div class="flex-1">
+                                    <div class="font-medium">${pet ? pet.name : 'Unknown Pet'} - ${activity.type}</div>
+                                    <div class="text-sm text-gray-600">
+                                        ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                        ${activity.duration ? ` • ${activity.duration}min` : ''}
+                                    </div>
+                                    ${activity.notes ? `<div class="text-sm text-gray-500">${activity.notes}</div>` : ''}
+                                    ${displayPhotos(activity.photos)}
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="deleteActivity('${activity.id}')" class="text-red-500 hover:text-red-700 ml-3">
+                            <i class="fas fa-trash text-sm"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getActivityIcon(type) {
+            const icons = {
+                feeding: '🍽️',
+                walk: '🚶',
+                medication: '💊',
+                grooming: '✂️',
+                play: '🎾',
+                training: '🎓',
+                other: '📋'
+            };
+            return icons[type] || icons.other;
+        }
+
+        function deleteActivity(activityId) {
+            if (confirm('Are you sure you want to delete this activity?')) {
+                activities = activities.filter(a => a.id !== activityId);
+                saveData();
+                renderActivities();
+                updateTodaySummary();
+                renderPets();
+                generateActivityHeatmap();
+                updateModernStatistics();
+            }
+        }
+
+        function updateTodaySummary() {
+            const today = new Date();
+            const todayActivities = activities.filter(a => isToday(new Date(a.dateTime)));
+            
+            const summary = {};
+            todayActivities.forEach(activity => {
+                const pet = pets.find(p => p.id === activity.petId);
+                if (pet) {
+                    if (!summary[pet.name]) summary[pet.name] = {};
+                    summary[pet.name][activity.type] = (summary[pet.name][activity.type] || 0) + 1;
+                }
+            });
+            
+            const summaryDiv = document.getElementById('todaySummary');
+            if (Object.keys(summary).length === 0) {
+                summaryDiv.innerHTML = '<p class="text-gray-500">No activities logged today</p>';
+                return;
+            }
+            
+            summaryDiv.innerHTML = Object.entries(summary).map(([petName, activities]) => {
+                const activityList = Object.entries(activities).map(([type, count]) => 
+                    `${getActivityIcon(type)} ${type}: ${count}`
+                ).join(', ');
+                return `<div><strong>${petName}:</strong> ${activityList}</div>`;
+            }).join('');
+        }
+
+        function isToday(date) {
+            const today = new Date();
+            return date.toDateString() === today.toDateString();
+        }
+
+        // Health Management
+        document.getElementById('addHealthForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const healthRecord = {
+                id: Date.now().toString(),
+                petId: document.getElementById('healthPet').value,
+                type: document.getElementById('healthType').value,
+                date: document.getElementById('healthDate').value,
+                description: document.getElementById('healthDescription').value,
+                weight: parseFloat(document.getElementById('healthWeight').value) || null,
+                veterinarian: document.getElementById('healthVet').value,
+                notes: document.getElementById('healthNotes').value,
+                photos: getPhotosFromPreview('healthPhotoPreview')
+            };
+            
+            healthRecords.push(healthRecord);
+            saveData();
+            renderHealthRecords();
+            updateWeightChart();
+            updateModernStatistics();
+            closeModal('addHealthModal');
+            this.reset();
+            
+            // Reset date to today
+            document.getElementById('healthDate').value = new Date().toISOString().split('T')[0];
+        });
+
+        function renderHealthRecords() {
+            renderVaccinations();
+            renderHealthRecordsList();
+        }
+
+        function renderVaccinations() {
+            const vaccinations = healthRecords.filter(r => r.type === 'vaccination');
+            const list = document.getElementById('vaccinationList');
+            
+            if (vaccinations.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center py-4">No vaccinations recorded</p>';
+                return;
+            }
+            
+            list.innerHTML = vaccinations.map(vacc => {
+                const pet = pets.find(p => p.id === vacc.petId);
+                const date = new Date(vacc.date);
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                        <div class="flex-1">
+                            <div class="font-medium">${pet ? pet.name : 'Unknown Pet'}</div>
+                            <div class="text-sm text-gray-600">${vacc.description}</div>
+                            <div class="text-sm text-gray-500">${date.toLocaleDateString()}</div>
+                            ${displayPhotos(vacc.photos)}
+                        </div>
+                        <button onclick="deleteHealthRecord('${vacc.id}')" class="text-red-500 hover:text-red-700 ml-3">
+                            <i class="fas fa-trash text-sm"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderHealthRecordsList() {
+            const list = document.getElementById('healthRecordsList');
+            const records = healthRecords
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 10);
+            
+            if (records.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center py-4">No health records yet</p>';
+                return;
+            }
+            
+            list.innerHTML = records.map(record => {
+                const pet = pets.find(p => p.id === record.petId);
+                const date = new Date(record.date);
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-lg">${getHealthIcon(record.type)}</div>
+                                <div class="flex-1">
+                                    <div class="font-medium">${pet ? pet.name : 'Unknown Pet'} - ${record.type}</div>
+                                    <div class="text-sm text-gray-600">${record.description}</div>
+                                    <div class="text-sm text-gray-500">
+                                        ${date.toLocaleDateString()}
+                                        ${record.veterinarian ? ` • Dr. ${record.veterinarian}` : ''}
+                                        ${record.weight ? ` • ${record.weight}kg` : ''}
+                                    </div>
+                                    ${record.notes ? `<div class="text-sm text-gray-400">${record.notes}</div>` : ''}
+                                    ${displayPhotos(record.photos)}
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="deleteHealthRecord('${record.id}')" class="text-red-500 hover:text-red-700 ml-3">
+                            <i class="fas fa-trash text-sm"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getHealthIcon(type) {
+            const icons = {
+                vaccination: '💉',
+                checkup: '🩺',
+                illness: '🤒',
+                weight: '⚖️',
+                medication: '💊',
+                other: '📋'
+            };
+            return icons[type] || icons.other;
+        }
+
+        function deleteHealthRecord(recordId) {
+            if (confirm('Are you sure you want to delete this health record?')) {
+                healthRecords = healthRecords.filter(r => r.id !== recordId);
+                saveData();
+                renderHealthRecords();
+                updateWeightChart();
+                updateModernStatistics();
+            }
+        }
+
+        function updateWeightChart() {
+            const ctx = document.getElementById('weightChart');
+            if (!ctx) return;
+            
+            const weightRecords = healthRecords
+                .filter(r => r.weight)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            if (weightRecords.length === 0) {
+                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+                ctx.getContext('2d').fillText('No weight data available', 10, 50);
+                return;
+            }
+            
+            const petData = {};
+            weightRecords.forEach(record => {
+                const pet = pets.find(p => p.id === record.petId);
+                if (pet) {
+                    if (!petData[pet.name]) petData[pet.name] = [];
+                    petData[pet.name].push({
+                        x: record.date,
+                        y: record.weight
+                    });
+                }
+            });
+            
+            const datasets = Object.entries(petData).map(([petName, data], index) => ({
+                label: petName,
+                data: data,
+                borderColor: `hsl(${index * 60}, 70%, 50%)`,
+                backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.1)`,
+                tension: 0.4
+            }));
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day' }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: 'Weight (kg)' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true }
+                    }
+                }
+            });
+        }
+
+        // Routine Management
+        document.getElementById('addRoutineForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const routine = {
+                id: Date.now().toString(),
+                petId: document.getElementById('routinePet').value,
+                activity: document.getElementById('routineActivity').value,
+                frequency: document.getElementById('routineFrequency').value,
+                time: document.getElementById('routineTime').value,
+                notes: document.getElementById('routineNotes').value,
+                active: true
+            };
+            
+            routines.push(routine);
+            saveData();
+            renderRoutines();
+            updateModernStatistics();
+            closeModal('addRoutineModal');
+            this.reset();
+        });
+
+        function renderRoutines() {
+            const list = document.getElementById('routinesList');
+            const activeRoutines = routines.filter(r => r.active);
+            
+            if (activeRoutines.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center py-4">No routines set up yet</p>';
+                return;
+            }
+            
+            list.innerHTML = activeRoutines.map(routine => {
+                const pet = pets.find(p => p.id === routine.petId);
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="text-lg">${getActivityIcon(routine.activity)}</div>
+                            <div>
+                                <div class="font-medium">${pet ? pet.name : 'Unknown Pet'} - ${routine.activity}</div>
+                                <div class="text-sm text-gray-600">${routine.frequency} at ${routine.time}</div>
+                                ${routine.notes ? `<div class="text-sm text-gray-500">${routine.notes}</div>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="toggleRoutine('${routine.id}')" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-pause"></i>
+                            </button>
+                            <button onclick="deleteRoutine('${routine.id}')" class="text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            renderUpcomingTasks();
+        }
+
+        function renderUpcomingTasks() {
+            const tasksList = document.getElementById('upcomingTasks');
+            const now = new Date();
+            const tasks = [];
+            
+            routines.filter(r => r.active).forEach(routine => {
+                const pet = pets.find(p => p.id === routine.petId);
+                if (!pet) return;
+                
+                const [hours, minutes] = routine.time.split(':').map(Number);
+                const taskTime = new Date(now);
+                taskTime.setHours(hours, minutes, 0, 0);
+                
+                // If the task time has passed today, show tomorrow's task
+                if (taskTime <= now) {
+                    taskTime.setDate(taskTime.getDate() + 1);
+                }
+                
+                tasks.push({
+                    petName: pet.name,
+                    activity: routine.activity,
+                    time: taskTime,
+                    frequency: routine.frequency
+                });
+            });
+            
+            tasks.sort((a, b) => a.time - b.time);
+            const nextTasks = tasks.slice(0, 5);
+            
+            if (nextTasks.length === 0) {
+                tasksList.innerHTML = '<p class="text-gray-500 text-center py-4">No upcoming tasks</p>';
+                return;
+            }
+            
+            tasksList.innerHTML = nextTasks.map(task => {
+                const timeString = task.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const isToday = task.time.toDateString() === now.toDateString();
+                const dayString = isToday ? 'Today' : 'Tomorrow';
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="text-lg">${getActivityIcon(task.activity)}</div>
+                            <div>
+                                <div class="font-medium">${task.petName} - ${task.activity}</div>
+                                <div class="text-sm text-gray-600">${dayString} at ${timeString}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleRoutine(routineId) {
+            const routine = routines.find(r => r.id === routineId);
+            if (routine) {
+                routine.active = !routine.active;
+                saveData();
+                renderRoutines();
+                updateModernStatistics();
+            }
+        }
+
+        function deleteRoutine(routineId) {
+            if (confirm('Are you sure you want to delete this routine?')) {
+                routines = routines.filter(r => r.id !== routineId);
+                saveData();
+                renderRoutines();
+                updateModernStatistics();
+            }
+        }
+
+        // Statistics (Legacy - keeping for backward compatibility)
+        function updateStatistics() {
+            updateModernStatistics();
+        }
+
+        // Data Management
+        function saveData() {
+            localStorage.setItem('pets', JSON.stringify(pets));
+            localStorage.setItem('activities', JSON.stringify(activities));
+            localStorage.setItem('healthRecords', JSON.stringify(healthRecords));
+            localStorage.setItem('routines', JSON.stringify(routines));
+        }
+
+        function loadData() {
+            pets = JSON.parse(localStorage.getItem('pets')) || [];
+            activities = JSON.parse(localStorage.getItem('activities')) || [];
+            healthRecords = JSON.parse(localStorage.getItem('healthRecords')) || [];
+            routines = JSON.parse(localStorage.getItem('routines')) || [];
+        }
+
+        function renderAll() {
+            renderPets();
+            renderActivities();
+            updateTodaySummary();
+            renderHealthRecords();
+            updateWeightChart();
+            renderRoutines();
+            setupModernStatistics();
+        }
+
+        function exportData() {
+            const data = {
+                pets,
+                activities,
+                healthRecords,
+                routines,
+                exportDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pet-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    if (modal.id === 'cameraModal') {
+                        closeCameraModal();
+                    } else {
+                        modal.style.display = 'none';
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
