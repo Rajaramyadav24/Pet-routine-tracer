@@ -2504,7 +2504,7 @@
                         <p class="text-sm text-gray-600">Keep up the great work!</p>
                     </div>
                 </div>`;
-            
+
             container.innerHTML = milestonesHTML;
             // console.log("Milestones and alerts rendered.");
         }
@@ -2525,7 +2525,7 @@
             let completedTasks = 0;
             let totalTasks = 0;
             const todayString = new Date().toDateString();
-            
+
             // Determine which pets to consider based on the current pet filter
             const currentPetFilter = document.getElementById('petFilter').value;
             const petsToConsider = currentPetFilter === "" ? pets.map(p => p.id) : [currentPetFilter];
@@ -2540,7 +2540,7 @@
                     totalTasks++;
                     const taskLoggedToday = activities.some(activity =>
                         activity.petId === routine.petId &&
-                        activity.type.toLowerCase() === routine.activity.toLowerCase() && 
+                        activity.type.toLowerCase() === routine.activity.toLowerCase() &&
                         new Date(activity.dateTime).toDateString() === todayString
                     );
                     if (taskLoggedToday) {
@@ -2577,10 +2577,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: '70%', 
+                    cutout: '70%',
                     plugins: {
                         legend: {
-                            display: false 
+                            display: false
                         },
                         tooltip: {
                             enabled: false
